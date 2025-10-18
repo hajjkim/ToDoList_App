@@ -1,5 +1,6 @@
 name: todolistapp
 description: "A new Flutter project."
+<<<<<<< HEAD
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -16,21 +17,29 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
+=======
+publish_to: 'none' # private, không publish lên pub.dev
+
+>>>>>>> origin/kimngot
 version: 1.0.0+1
 
 environment:
   sdk: ^3.9.2
 
+<<<<<<< HEAD
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
 # consider running `flutter pub upgrade --major-versions`. Alternatively,
 # dependencies can be manually updated by changing the version numbers below to
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
+=======
+>>>>>>> origin/kimngot
 dependencies:
   flutter:
     sdk: flutter
 
+<<<<<<< HEAD
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
@@ -90,3 +99,41 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+=======
+  # Icon iOS-style
+  cupertino_icons: ^1.0.8
+
+  # Lưu dữ liệu cục bộ (chọn ảnh nền, theme, v.v.)
+  shared_preferences: ^2.3.0
+  google_fonts: ^6.0.0
+  intl: ^0.19.0
+  sqflite: ^2.4.2
+  path: ^1.9.1
+
+  # Thông báo cục bộ (local notification)
+  flutter_local_notifications: ^17.2.1
+
+  # Quản lý múi giờ cho notification
+  timezone: ^0.9.3
+
+  # Lấy timezone hệ thống (plugin chính thức)
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/A1.png
+    - assets/A2.png
+    - assets/A3.png
+    - assets/A4.png
+    - assets/A5.png
+    - assets/A6.png
+    - assets/A7.png
+    - assets/logotodolist.png
+    - assets/account.png
+>>>>>>> origin/kimngot
