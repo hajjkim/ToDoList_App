@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'login_page.dart'; // ✅ để logout quay lại màn hình đăng nhập
+import '../screens/signin_screen.dart'; // Import Login
 
 class SettingPage extends StatefulWidget {
   const SettingPage({super.key});
@@ -40,7 +40,7 @@ class _SettingPageState extends State<SettingPage> {
     if (!mounted) return;
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (_) => const LoginPage()),
+      MaterialPageRoute(builder: (_) => const SignInScreen()),
       (route) => false,
     );
   }

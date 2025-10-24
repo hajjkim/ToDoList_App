@@ -1,9 +1,9 @@
-// lib/userpage/widgets/weekly_task_chart.dart
 import 'package:flutter/material.dart';
+import 'weekly_task_chart.dart';
 
 class WeeklyTaskChart extends StatelessWidget {
-  final List<bool> taskStatus;
-  final List<String> dayLabels;
+  final List<int> taskStatus; // 🔹 số task hoàn thành mỗi ngày (T2 → CN)
+  final List<String> dayLabels; // ['T2', 'T3', 'T4', ...]
   final Color color;
 
   const WeeklyTaskChart({
@@ -15,58 +15,53 @@ class WeeklyTaskChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final maxTasks = (taskStatus.isEmpty) ? 1 : taskStatus.reduce((a, b) => a > b ? a : b);
+    final hasData = taskStatus.any((e) => e > 0);
+
     return SizedBox(
-      height: 150,
+      height: 160,
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: List.generate(taskStatus.length, (index) {
-          final bool hasTask = taskStatus[index];
+          final count = taskStatus[index];
+          final heightFactor = hasData ? (count / maxTasks) : 0.05; // tỉ lệ theo ngày cao nhất
+
           return Column(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              Stack(
-                alignment: Alignment.bottomCenter,
-                children: [
-                  Container(
-                    width: 18,
-                    height: 110,
-                    decoration: BoxDecoration(
-                      color: color.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                  ),
-                  if (hasTask)
-                    TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0, end: 110),
-                      duration: const Duration(milliseconds: 800),
-                      curve: Curves.easeOutCubic,
-                      builder: (context, value, _) {
-                        return Container(
-                          width: 18,
-                          height: value,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.bottomCenter,
-                              end: Alignment.topCenter,
-                              colors: [
-                                color,
-                                color.withOpacity(0.4),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(6),
+              //Cột biểu đồ
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 600),
+                curve: Curves.easeOut,
+                height: 100 * heightFactor + 10, // luôn có độ cao tối thiểu
+                width: 14,
+                decoration: BoxDecoration(
+                  color: count > 0 ? color : Colors.grey.shade400,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: count > 0
+                    ? Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Text(
+                          '$count',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
                           ),
-                        );
-                      },
-                    ),
-                ],
+                        ),
+                      )
+                    : null,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
+              //Nhãn thứ
               Text(
                 dayLabels[index],
                 style: TextStyle(
+                  color: Colors.grey.shade600,
                   fontSize: 12,
-                  color: color,
                   fontWeight: FontWeight.w500,
                 ),
               ),

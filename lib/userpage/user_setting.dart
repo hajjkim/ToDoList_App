@@ -1,152 +1,176 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:settings_ui/settings_ui.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:todolistapp/screens/signin_screen.dart';
 import 'package:todolistapp/theme_provider.dart';
+import 'package:provider/provider.dart';
 
-class SettingPage extends StatelessWidget {
-  const SettingPage({super.key});
+class UserSetting extends StatefulWidget {
+  const UserSetting({Key? key}) : super(key: key);
 
+  @override
+  State<UserSetting> createState() => _UserSettingState();
+}
+
+class _UserSettingState extends State<UserSetting> {
   @override
   Widget build(BuildContext context) {
     final theme = Provider.of<ThemeProvider>(context);
+    final bool darkMode = theme.darkMode;
     final Color primaryColor = theme.themeColor;
+    final textColor = darkMode ? Colors.white : Colors.black87;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Cài đặt"),
         backgroundColor: primaryColor,
+        title: const Text("Cài đặt"),
         centerTitle: true,
-        foregroundColor: Colors.black87,
+        iconTheme: IconThemeData(color: Colors.white),
       ),
-      body: SettingsList(
-        sections: [
-          SettingsSection(
-            title: const Text('Tùy chỉnh'),
-            tiles: <SettingsTile>[
-              SettingsTile.switchTile(
-                leading: const Icon(Icons.dark_mode_outlined),
-                title: const Text('Chế độ tối'),
-                initialValue: theme.darkMode,
-                onToggle: (value) => theme.toggleDarkMode(value),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ---------- TÙY CHỈNH ----------
+            Text(
+              "Tùy chỉnh",
+              style: TextStyle(
+                color: primaryColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
               ),
-              SettingsTile(
-                leading: const Icon(Icons.color_lens_outlined),
-                title: const Text('Đổi chủ đề màu'),
-                description: const Text('Chọn màu chủ đạo của ứng dụng'),
-                onPressed: (_) => _showColorPicker(context, theme),
+            ),
+            const SizedBox(height: 12),
+
+            //Chế độ tối
+            ListTile(
+              leading: const Icon(Icons.dark_mode),
+              title: const Text("Chế độ tối"),
+              trailing: Switch(
+                value: darkMode,
+                activeColor: primaryColor,
+                onChanged: (value) {
+                  theme.toggleDarkMode(!darkMode);
+                },
               ),
-            ],
-          ),
-          SettingsSection(
-            title: const Text('Dữ liệu'),
-            tiles: <SettingsTile>[
-              SettingsTile(
-                leading: const Icon(Icons.delete_forever_outlined,
-                    color: Colors.redAccent),
-                title: const Text('Xóa tất cả công việc'),
-                description: const Text('Xóa toàn bộ danh sách công việc'),
-                onPressed: (_) => _confirmDelete(context),
+            ),
+
+            //Đổi chủ đề màu
+            ListTile(
+              leading: const Icon(Icons.palette_outlined),
+              title: const Text("Đổi chủ đề màu"),
+              subtitle: const Text("Chọn màu chủ đạo của ứng dụng"),
+              onTap: () {
+                Navigator.pushNamed(context, '/theme-setting');
+              },
+            ),
+
+            const SizedBox(height: 24),
+
+            // ---------- DỮ LIỆU ----------
+            Text(
+              "Dữ liệu",
+              style: TextStyle(
+                color: primaryColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
               ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+            ),
+            const SizedBox(height: 12),
 
-      void _showColorPicker(BuildContext context, ThemeProvider theme) {
-      final colors = theme.themeColors; // 🔹 Lấy danh sách màu từ ThemeProvider
-
-      showModalBottomSheet(
-        context: context,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        ),
-        builder: (context) => Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                "Chọn màu chủ đề",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            //Xóa tất cả công việc
+            ListTile(
+              leading: const Icon(Icons.delete_forever, color: Colors.red),
+              title: const Text(
+                "Xóa tất cả công việc",
+                style: TextStyle(color: Colors.red),
               ),
-              const SizedBox(height: 16),
+              subtitle: const Text("Xóa toàn bộ danh sách công việc"),
+              onTap: _confirmDeleteAllTasks,
+            ),
 
-              // 🔹 Hiển thị các màu trong danh sách themeColors
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 16,
-                runSpacing: 16,
-                children: colors
-                    .map((color) => _colorCircle(context, theme, color))
-                    .toList(),
+            // ---------- ĐĂNG XUẤT ----------
+            const SizedBox(height: 12),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.deepPurple),
+              title: const Text(
+                "Đăng xuất",
+                style: TextStyle(color: Colors.deepPurple),
               ),
-
-              const SizedBox(height: 20),
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(
-                  "Đóng",
-                  style: TextStyle(
-                    color: theme.themeColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-
-  Widget _colorCircle(BuildContext context, ThemeProvider theme, Color color) {
-    return GestureDetector(
-      onTap: () {
-        theme.setThemeColor(color);
-        Navigator.pop(context);
-      },
-      child: Container(
-        width: 50,
-        height: 50,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: theme.themeColor == color
-                ? Colors.black54
-                : Colors.transparent,
-            width: 2,
-          ),
+              subtitle: const Text("Thoát khỏi tài khoản hiện tại"),
+              onTap: _confirmSignOut,
+            ),
+          ],
         ),
       ),
     );
   }
 
-  void _confirmDelete(BuildContext context) {
+  //Hộp thoại xác nhận xóa toàn bộ công việc
+  void _confirmDeleteAllTasks() {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Xác nhận"),
-        content: const Text("Bạn có chắc muốn xóa toàn bộ công việc không?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Hủy"),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Đã xóa toàn bộ công việc")),
-              );
-            },
-            child: const Text("Xóa",
-                style: TextStyle(color: Colors.redAccent)),
-          ),
-        ],
-      ),
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Xóa tất cả công việc?"),
+          content: const Text("Hành động này không thể hoàn tác."),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Hủy"),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                // TODO: thêm hàm xóa dữ liệu Firestore nếu cần
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Đã xóa tất cả công việc")),
+                );
+              },
+              child: const Text(
+                "Xóa",
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  //Hộp thoại xác nhận đăng xuất
+  void _confirmSignOut() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Đăng xuất"),
+          content: const Text("Bạn có chắc chắn muốn đăng xuất không?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Hủy"),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await FirebaseAuth.instance.signOut();
+                if (!mounted) return;
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const SignInScreen()), // trở về màn đăng nhập
+                  (route) => false,
+                );
+              },
+              child: const Text(
+                "Đăng xuất",
+                style: TextStyle(color: Colors.deepPurple),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

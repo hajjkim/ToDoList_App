@@ -12,9 +12,12 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
 
-
-    Future.delayed(const Duration(seconds: 4), () {
-      Navigator.pushReplacementNamed(context, '/signin');
+    // Ensure navigation happens after first frame to avoid Navigator/context timing issues
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(seconds: 4), () {
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, '/signin');
+      });
     });
   }
 
@@ -33,7 +36,7 @@ class _SplashScreenState extends State<SplashScreen> {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(60),
                 child: Image.asset(
-                  'assets/logo.jpg',
+                  'assets/images/logo.png',
                   height: 70,
                 ),
               ),
