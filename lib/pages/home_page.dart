@@ -36,8 +36,8 @@ class _HomePageState extends State<HomePage> {
   String searchQuery = "";
   bool isSearching = false;
   int _selectedIndex = 0;
-  bool _isSelectionMode = false; // 🔹 Đang chọn nhiều
-  Set<String> _selectedTasks = {}; // 🔹 Danh sách ID task đã chọn
+  bool _isSelectionMode = false; //Đang chọn nhiều
+  Set<String> _selectedTasks = {}; //Danh sách ID task đã chọn
 
   final TextEditingController _searchController = TextEditingController();
 
@@ -99,109 +99,116 @@ Widget build(BuildContext context) {
     );
   }
 
-  return Scaffold(
-    backgroundColor: pageBgColor,
-    appBar: AppBar(
-      backgroundColor: pageBgColor,
-      elevation: 0,
-      leading: _isSelectionMode
-          ? IconButton(
-              icon: const Icon(Icons.close, color: Colors.purple),
-              onPressed: () => setState(() {
-                _isSelectionMode = false;
-                _selectedTasks.clear();
-              }),
-            )
-          : null,
-      title: isSearching
-          ? TextField(
-              controller: _searchController,
-              autofocus: true,
-              decoration: InputDecoration(
-                hintText: "Tìm ghi chú...",
-                hintStyle: TextStyle(color: subTextColor),
-                border: InputBorder.none,
-              ),
-              style: TextStyle(color: textColor),
-              onChanged: (v) => setState(() => searchQuery = v),
-            )
-          : Text(
-              _isSelectionMode
-                  ? "Đã chọn ${_selectedTasks.length}"
-                  : "Ghi chú của tôi",
-              style: TextStyle(color: textColor),
-            ),
-      actions: [
-        if (_isSelectionMode)
-          IconButton(
-            icon: const Icon(Icons.delete, color: Colors.redAccent),
-            onPressed: () async {
-              if (_selectedTasks.isEmpty) {
-                _showSnack("Chưa chọn tác vụ nào");
-                return;
-              }
-
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text("Xác nhận xóa"),
-                  content: Text(
-                      "Bạn có chắc muốn xóa ${_selectedTasks.length} tác vụ không?"),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, false),
-                      child: const Text("Hủy"),
-                    ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.redAccent),
-                      onPressed: () => Navigator.pop(ctx, true),
-                      child: const Text("Xóa"),
-                    ),
-                  ],
+return Scaffold(
+  backgroundColor: pageBgColor,
+  appBar: _selectedIndex == 2
+      ? null //Không hiển thị "Ghi chú của tôi" ở trang Người dùng
+      : AppBar(
+          backgroundColor: pageBgColor,
+          elevation: 0,
+          leading: _isSelectionMode
+              ? IconButton(
+                  icon: const Icon(Icons.close, color: Colors.purple),
+                  onPressed: () => setState(() {
+                    _isSelectionMode = false;
+                    _selectedTasks.clear();
+                  }),
+                )
+              : null,
+          title: isSearching
+              ? TextField(
+                  controller: _searchController,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    hintText: "Tìm ghi chú...",
+                    hintStyle: TextStyle(color: subTextColor),
+                    border: InputBorder.none,
+                  ),
+                  style: TextStyle(color: textColor),
+                  onChanged: (v) => setState(() => searchQuery = v),
+                )
+              : Text(
+                  _isSelectionMode
+                      ? "Đã chọn ${_selectedTasks.length}"
+                      : "Ghi chú của tôi",
+                  style: TextStyle(color: textColor),
                 ),
-              );
+          actions: [
+            if (_isSelectionMode)
+              IconButton(
+                icon: const Icon(Icons.delete, color: Colors.redAccent),
+                onPressed: () async {
+                  if (_selectedTasks.isEmpty) {
+                    _showSnack("Chưa chọn tác vụ nào");
+                    return;
+                  }
 
-              if (confirm == true) {
-                await _deleteSelectedTasks(_selectedTasks.toList());
-                setState(() {
-                  _isSelectionMode = false;
-                  _selectedTasks.clear();
-                });
-              }
-            },
-          )
-        else
-          IconButton(
-            icon: Icon(
-              isSearching ? Icons.close : Icons.search,
-              color: textColor,
-            ),
-            onPressed: () {
-              setState(() {
-                if (isSearching) {
-                  isSearching = false;
-                  searchQuery = "";
-                  _searchController.clear();
-                } else {
-                  isSearching = true;
-                }
-              });
-            },
-          ),
-      ],
-    ),
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text("Xác nhận xóa"),
+                      content: Text(
+                          "Bạn có chắc muốn xóa ${_selectedTasks.length} tác vụ không?"),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: const Text("Hủy"),
+                        ),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.redAccent),
+                          onPressed: () => Navigator.pop(ctx, true),
+                          child: const Text("Xóa"),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirm == true) {
+                    await _deleteSelectedTasks(_selectedTasks.toList());
+                    setState(() {
+                      _isSelectionMode = false;
+                      _selectedTasks.clear();
+                    });
+                  }
+                },
+              )
+            else
+              IconButton(
+                icon: Icon(
+                  isSearching ? Icons.close : Icons.search,
+                  color: textColor,
+                ),
+                onPressed: () {
+                  setState(() {
+                    if (isSearching) {
+                      isSearching = false;
+                      searchQuery = "";
+                      _searchController.clear();
+                    } else {
+                      isSearching = true;
+                    }
+                  });
+                },
+              ),
+          ],
+        ),
+
+    // drawer: OrbDrawer(
+    //   userId: widget.userId,
+    //   onSelectCategory: (cat) => setState(() => selectedFilter = cat),
+    //   onOpenTheme: () async {
+    //     await Navigator.push(
+    //       context,
+    //       MaterialPageRoute(builder: (_) => const ThemeSettingPage()),
+    //     );
+    //     await _loadPrefs();
+    //   },
+    // ),
 
     drawer: OrbDrawer(
       userId: widget.userId,
       onSelectCategory: (cat) => setState(() => selectedFilter = cat),
-      onOpenTheme: () async {
-        await Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const ThemeSettingPage()),
-        );
-        await _loadPrefs();
-      },
     ),
 
     body: bodyWidget,
@@ -229,8 +236,7 @@ Widget build(BuildContext context) {
 }
 
 
-//Danh sách firestore
-
+//-------------------------------------------------------Danh sách firestore
   Widget _buildFirestoreTaskList(Color pageBg, Color cardBg, Color text, Color sub) {
     final stream = FirebaseFirestore.instance
         .collection('users')
@@ -248,39 +254,61 @@ Widget build(BuildContext context) {
 
         final docs = snapshot.data?.docs ?? [];
         if (docs.isEmpty) {
-          return const Center(child: Text("Chưa có tác vụ nào"));
+          return const Center(
+            child: Text(
+              "Danh sách trống.\nHãy thêm nhiệm vụ 🌟",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+          );
         }
 
+        //C-------------------------------------------------------huyển Firestore docs sang list map
         var tasks = docs
             .map((d) => {'id': d.id, ...d.data() as Map<String, dynamic>})
             .toList();
 
-        //Đảm bảo mọi task đều có isStarred (nếu thiếu thì mặc định false)
+        //-------------------------------------------------------Đảm bảo có trường isStarred
         for (var t in tasks) {
           t['isStarred'] = t['isStarred'] ?? false;
         }
 
-        //Lọc theo danh mục & tìm kiếm
+        //-------------------------------------------------------Lọc theo danh mục, tìm kiếm & Starred
         tasks = tasks.where((t) {
-          final f1 = selectedFilter == "Tất cả" || t["category"] == selectedFilter;
-          final f2 = (t["title"] ?? '')
-              .toString()
-              .toLowerCase()
-              .contains(searchQuery.toLowerCase());
-          return f1 && f2;
+          final title = (t["title"] ?? '').toString().toLowerCase();
+          final fSearch = title.contains(searchQuery.toLowerCase());
+
+          if (selectedFilter == "Starred") {
+            return (t["isStarred"] == true) && fSearch;
+          }
+
+          final fCategory = selectedFilter == "Tất cả" || t["category"] == selectedFilter;
+          return fCategory && fSearch;
         }).toList();
 
-        //Chia nhóm công việc
+        //-------------------------------------------------------Nếu lọc xong mà không còn task nào-------------------------------------------------------
+        if (tasks.isEmpty) {
+          return const Center(
+            child: Text(
+              "Danh sách trống.\nHãy thêm nhiệm vụ 🌟",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+          );
+        }
+
+        //Chia nhóm task
         final active = tasks.where((t) => !(t["isDone"] ?? false)).toList();
         final done = tasks.where((t) => t["isDone"] == true).toList();
 
-        //Sort “Đang thực hiện” sao cho task có ⭐ lên đầu
+        //Sort task đang thực hiện — task có sao ⭐ lên đầu
         active.sort((a, b) {
           final aStar = a["isStarred"] == true ? 1 : 0;
           final bStar = b["isStarred"] == true ? 1 : 0;
-          return bStar.compareTo(aStar); // ⭐ task có sao sẽ đứng trước
+          return bStar.compareTo(aStar);
         });
 
+        //Hiển thị danh sách
         return Container(
           padding: const EdgeInsets.all(12),
           child: ListView(
@@ -297,6 +325,7 @@ Widget build(BuildContext context) {
       },
     );
   }
+
 
   //-------------------------------------------------------HIỂN THỊ PHẦN NHÓM & THẺ TASK-------------------------------------------------------
   Widget _section(String title, Color color) => Padding(
@@ -528,153 +557,193 @@ Widget build(BuildContext context) {
 
     await showModalBottomSheet(
       context: context,
-      isScrollControlled: true,
+      isScrollControlled: true, // ✅ cho phép full chiều cao và tránh dính đáy
+      useSafeArea: true, // ✅ tránh dính thanh điều hướng
+      backgroundColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
       builder: (ctx) {
         return Padding(
           padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 30,
             left: 20,
             right: 20,
             top: 20,
           ),
-          child: StatefulBuilder(builder: (context, setState) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  "Chỉnh sửa tác vụ",
-                  style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF7B2CBF)),
-                ),
-                const SizedBox(height: 12),
-
-                // Tiêu đề tác vụ
-                TextField(
-                  controller: titleCtrl,
-                  decoration: InputDecoration(
-                    prefixIcon:
-                        const Icon(Icons.title, color: Color(0xFF7B2CBF)),
-                    hintText: "Nhập tiêu đề mới...",
-                    filled: true,
-                    fillColor: const Color(0xFFF3E8FF),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(15),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // Dropdown thể loại
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF3E8FF),
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: DropdownButton<String>(
-                    value: category,
-                    isExpanded: true,
-                    underline: const SizedBox(),
-                    icon: const Icon(Icons.arrow_drop_down,
-                        color: Color(0xFF7B2CBF)),
-                    items: ["Cá nhân", "Công việc", "Yêu thích", "Sinh nhật", "Khác"]
-                        .map((e) => DropdownMenuItem(
-                              value: e,
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.label_outline,
-                                      size: 18, color: Color(0xFF7B2CBF)),
-                                  const SizedBox(width: 8),
-                                  Text(e),
-                                ],
-                              ),
-                            ))
-                        .toList(),
-                    onChanged: (v) => setState(() => category = v!),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // Chọn ngày & giờ
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF3E8FF),
-                    foregroundColor: const Color(0xFF7B2CBF),
-                  ),
-                  onPressed: () async {
-                    final date = await showDatePicker(
-                      context: context,
-                      initialDate: selectedDateTime ?? DateTime.now(),
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime(2100),
-                    );
-                    if (date == null) return;
-                    final time = await showTimePicker(
-                      context: context,
-                      initialTime: selectedDateTime != null
-                          ? TimeOfDay.fromDateTime(selectedDateTime!)
-                          : TimeOfDay.now(),
-                    );
-                    if (time == null) return;
-                    setState(() {
-                      selectedDateTime = DateTime(
-                          date.year, date.month, date.day, time.hour, time.minute);
-                    });
-                  },
-                  icon: const Icon(Icons.access_time),
-                  label: Text(selectedDateTime == null
-                      ? "Chọn ngày & giờ"
-                      : DateFormat("dd/MM/yyyy HH:mm").format(selectedDateTime!)),
-                ),
-                const SizedBox(height: 16),
-
-                //Lưu thay đổi
-                SizedBox(
-                  width: double.infinity,
-                  height: 45,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF7B2CBF),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15)),
-                    ),
-                    onPressed: () async {
-                      if (titleCtrl.text.isEmpty) return;
-                      await FirebaseFirestore.instance
-                          .collection('users')
-                          .doc(widget.userId)
-                          .collection('tasks')
-                          .doc(task["id"])
-                          .update({
-                        'title': titleCtrl.text,
-                        'category': category,
-                        'due': selectedDateTime != null
-                            ? Timestamp.fromDate(selectedDateTime!)
-                            : null,
-                      });
-                      Navigator.pop(context);
-                      _showSnack("Đã cập nhật tác vụ");
-                    },
-                    child: const Text(
-                      "Lưu thay đổi",
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                  ),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(25),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, -2),
                 ),
               ],
-            );
-          }),
+            ),
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: StatefulBuilder(builder: (context, setState) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 50,
+                        height: 5,
+                        margin: const EdgeInsets.only(bottom: 20),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade400,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+
+                      const Text(
+                        "Chỉnh sửa tác vụ",
+                        style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF7B2CBF)),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Tiêu đề tác vụ
+                      TextField(
+                        controller: titleCtrl,
+                        decoration: InputDecoration(
+                          prefixIcon: const Icon(Icons.title, color: Color(0xFF7B2CBF)),
+                          hintText: "Nhập tiêu đề mới...",
+                          filled: true,
+                          fillColor: const Color(0xFFF3E8FF),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(15),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+
+                      // Dropdown thể loại
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF3E8FF),
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: DropdownButton<String>(
+                          value: category,
+                          isExpanded: true,
+                          underline: const SizedBox(),
+                          icon: const Icon(Icons.arrow_drop_down,
+                              color: Color(0xFF7B2CBF)),
+                          items: [
+                            "Cá nhân",
+                            "Công việc",
+                            "Yêu thích",
+                            "Sinh nhật",
+                            "Khác"
+                          ]
+                              .map((e) => DropdownMenuItem(
+                                    value: e,
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.label_outline,
+                                            size: 18, color: Color(0xFF7B2CBF)),
+                                        const SizedBox(width: 8),
+                                        Text(e),
+                                      ],
+                                    ),
+                                  ))
+                              .toList(),
+                          onChanged: (v) => setState(() => category = v!),
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+
+                      // Chọn ngày & giờ
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFF3E8FF),
+                          foregroundColor: const Color(0xFF7B2CBF),
+                          minimumSize: const Size(double.infinity, 50),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15)),
+                        ),
+                        onPressed: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate: selectedDateTime ?? DateTime.now(),
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime(2100),
+                          );
+                          if (date == null) return;
+                          final time = await showTimePicker(
+                            context: context,
+                            initialTime: selectedDateTime != null
+                                ? TimeOfDay.fromDateTime(selectedDateTime!)
+                                : TimeOfDay.now(),
+                          );
+                          if (time == null) return;
+                          setState(() {
+                            selectedDateTime = DateTime(
+                                date.year, date.month, date.day, time.hour, time.minute);
+                          });
+                        },
+                        icon: const Icon(Icons.access_time),
+                        label: Text(selectedDateTime == null
+                            ? "Chọn ngày & giờ"
+                            : DateFormat("dd/MM/yyyy HH:mm")
+                                .format(selectedDateTime!)),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Lưu thay đổi
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF7B2CBF),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(15)),
+                            elevation: 4,
+                          ),
+                          onPressed: () async {
+                            if (titleCtrl.text.isEmpty) return;
+                            await FirebaseFirestore.instance
+                                .collection('users')
+                                .doc(widget.userId)
+                                .collection('tasks')
+                                .doc(task["id"])
+                                .update({
+                              'title': titleCtrl.text,
+                              'category': category,
+                              'due': selectedDateTime != null
+                                  ? Timestamp.fromDate(selectedDateTime!)
+                                  : null,
+                            });
+                            Navigator.pop(context);
+                            _showSnack("Đã cập nhật tác vụ");
+                          },
+                          child: const Text(
+                            "Lưu thay đổi",
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                }),
+              ),
+            ),
+          ),
         );
       },
     );
   }
-
 }

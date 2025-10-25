@@ -14,34 +14,66 @@ class CalendarPage extends StatefulWidget {
 class _CalendarPageState extends State<CalendarPage> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
-  late Stream<QuerySnapshot> _taskStream;
+  Map<DateTime, List<Map<String, dynamic>>> taskEvents = {};
 
   @override
   void initState() {
     super.initState();
-    _taskStream = FirebaseFirestore.instance
+    _loadTasks();
+  }
+
+  Future<void> _loadTasks() async {
+    final snapshot = await FirebaseFirestore.instance
         .collection('users')
         .doc(widget.userId)
         .collection('tasks')
-        .snapshots();
+        .get();
+
+    Map<DateTime, List<Map<String, dynamic>>> events = {};
+
+    for (var doc in snapshot.docs) {
+      final data = doc.data();
+      final due = (data['due'] as Timestamp?)?.toDate();
+      if (due == null) continue;
+
+      final dateKey = DateTime(due.year, due.month, due.day);
+      events.putIfAbsent(dateKey, () => []).add(data);
+    }
+
+    setState(() {
+      taskEvents = events;
+    });
+  }
+
+  List<Map<String, dynamic>> _getTasksForDay(DateTime day) {
+    final key = DateTime(day.year, day.month, day.day);
+    return taskEvents[key] ?? [];
   }
 
   @override
   Widget build(BuildContext context) {
+    final Color primaryColor = Colors.purple;
+    final Color accentColor = const Color(0xFFB388FF);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F5FF),
+      backgroundColor: const Color(0xFFF8F5FF),
       body: SafeArea(
         child: Column(
           children: [
-            // 🔹 Tiêu đề
+            //Header
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 16),
-              color: Colors.purple,
+              decoration: BoxDecoration(
+                color: primaryColor,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(18),
+                  bottomRight: Radius.circular(18),
+                ),
+              ),
               child: const Column(
                 children: [
-                  Icon(Icons.calendar_today, color: Colors.white, size: 30),
-                  SizedBox(height: 6),
+                  SizedBox(height: 4),
                   Text(
                     "Lịch tác vụ",
                     style: TextStyle(
@@ -54,99 +86,126 @@ class _CalendarPageState extends State<CalendarPage> {
               ),
             ),
 
-            // 🔹 Lịch
-            TableCalendar(
-              locale: 'en_US',
-              firstDay: DateTime.utc(2020, 1, 1),
-              lastDay: DateTime.utc(2100, 12, 31),
-              focusedDay: _focusedDay,
-              selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-              onDaySelected: (selected, focused) {
-                setState(() {
-                  _selectedDay = selected;
-                  _focusedDay = focused;
-                });
-              },
-              calendarStyle: const CalendarStyle(
-                todayDecoration:
-                    BoxDecoration(color: Colors.purple, shape: BoxShape.circle),
-                selectedDecoration: BoxDecoration(
-                  color: Color(0xFFB388FF),
-                  shape: BoxShape.circle,
+            const SizedBox(height: 12),
+
+            // 🔹 Lịch có chấm màu phân loại
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Material(
+                elevation: 2,
+                borderRadius: BorderRadius.circular(18),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: TableCalendar(
+                    locale: 'vi_VN',
+                    firstDay: DateTime.utc(2020, 1, 1),
+                    lastDay: DateTime.utc(2100, 12, 31),
+                    focusedDay: _focusedDay,
+                    selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                    eventLoader: _getTasksForDay,
+                    onDaySelected: (selected, focused) {
+                      setState(() {
+                        _selectedDay = selected;
+                        _focusedDay = focused;
+                      });
+                    },
+                    calendarBuilders: CalendarBuilders(
+                      markerBuilder: (context, date, events) {
+                        if (events.isEmpty) return const SizedBox.shrink();
+
+                        // Ép kiểu và kiểm tra an toàn
+                        final typedEvents = events.whereType<Map<String, dynamic>>().toList();
+
+                        bool hasCompleted = typedEvents.any((e) => (e['isDone'] ?? false) == true);
+                        bool hasStarred = typedEvents.any((e) => (e['isStarred'] ?? false) == true);
+
+                        Color markerColor = hasCompleted
+                            ? Colors.green
+                            : hasStarred
+                                ? Colors.amber
+                                : Colors.purpleAccent;
+
+                        return Positioned(
+                          bottom: 4,
+                          child: Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: markerColor,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        );
+                      },
+
+                    ),
+                    calendarStyle: CalendarStyle(
+                      todayDecoration: BoxDecoration(
+                        color: primaryColor.withOpacity(0.9),
+                        shape: BoxShape.circle,
+                      ),
+                      selectedDecoration: BoxDecoration(
+                        color: accentColor,
+                        shape: BoxShape.circle,
+                      ),
+                      markersAlignment: Alignment.bottomCenter,
+                    ),
+                    headerStyle: HeaderStyle(
+                      titleCentered: true,
+                      formatButtonVisible: false,
+                      titleTextStyle: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      leftChevronIcon:
+                          Icon(Icons.chevron_left_rounded, color: primaryColor),
+                      rightChevronIcon:
+                          Icon(Icons.chevron_right_rounded, color: primaryColor),
+                    ),
+                    daysOfWeekStyle: DaysOfWeekStyle(
+                      weekendStyle: TextStyle(color: primaryColor),
+                    ),
+                  ),
                 ),
-              ),
-              headerStyle: const HeaderStyle(
-                titleCentered: true,
-                formatButtonVisible: false,
-                titleTextStyle:
-                    TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
 
-            const SizedBox(height: 10),
+            const SizedBox(height: 16),
 
-            // 🔹 Danh sách công việc
+            //Danh sách công việc trong ngày
             Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                stream: _taskStream,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  final allTasks = snapshot.data?.docs ?? [];
-                  if (allTasks.isEmpty) {
-                    return const Center(child: Text("Chưa có tác vụ nào."));
-                  }
-
+              child: Builder(
+                builder: (context) {
                   final selectedDate = _selectedDay ?? DateTime.now();
-
-                  // 🔸 Lọc task theo ngày
-                  final tasksForDay = allTasks.where((t) {
-                    final data = t.data() as Map<String, dynamic>;
-                    final due = (data['due'] as Timestamp?)?.toDate();
-                    return due != null &&
-                        due.year == selectedDate.year &&
-                        due.month == selectedDate.month &&
-                        due.day == selectedDate.day;
-                  }).toList();
+                  final tasksForDay = _getTasksForDay(selectedDate);
 
                   if (tasksForDay.isEmpty) {
-                    return const Center(child: Text("Không có công việc trong ngày này."));
+                    return const Center(
+                      child: Text(
+                        "Không có công việc trong ngày này.\nHãy thêm nhiệm vụ 🌟",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey, fontSize: 15),
+                      ),
+                    );
                   }
 
-                  // 🔸 Phân loại
-                  final starred = tasksForDay
-                      .where((t) =>
-                          ((t.data() as Map<String, dynamic>)['isStarred'] ??
-                              false) ==
-                          true)
+                  final completed = tasksForDay
+                      .where((t) => (t['isDone'] ?? false) == true)
                       .toList();
                   final active = tasksForDay
-                      .where((t) =>
-                          ((t.data() as Map<String, dynamic>)['isDone'] ??
-                              false) ==
-                          false &&
-                          ((t.data() as Map<String, dynamic>)['isStarred'] ??
-                              false) ==
-                              false)
-                      .toList();
-                  final done = tasksForDay
-                      .where((t) =>
-                          ((t.data() as Map<String, dynamic>)['isDone'] ??
-                              false) ==
-                          true)
+                      .where((t) => (t['isDone'] ?? false) == false)
                       .toList();
 
                   return ListView(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                     children: [
-                      if (starred.isNotEmpty)
-                        _section("Công việc ưu tiên", starred, Colors.amber),
                       if (active.isNotEmpty)
                         _section("Đang thực hiện", active, Colors.purple),
-                      if (done.isNotEmpty)
-                        _section("Đã hoàn thành", done, Colors.green),
+                      if (completed.isNotEmpty)
+                        _section("Công việc đã hoàn thành", completed, Colors.green),
                     ],
                   );
                 },
@@ -158,69 +217,82 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 
-  // 🔹 Widget nhóm công việc
-  Widget _section(String title, List<QueryDocumentSnapshot> list, Color color) {
+  //Widget nhóm công việc
+  Widget _section(String title, List<Map<String, dynamic>> list, Color color) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding:
-              const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
+              const EdgeInsets.symmetric(horizontal: 4.0, vertical: 6.0),
           child: Text(
             title,
             style: TextStyle(
               color: color,
               fontWeight: FontWeight.bold,
-              fontSize: 15,
+              fontSize: 16,
             ),
           ),
         ),
-        ...list.map((doc) {
-          final data = doc.data() as Map<String, dynamic>;
+        ...list.map((data) {
           final title = data['title'] ?? '';
           final category = data['category'] ?? '';
           final due = (data['due'] as Timestamp?)?.toDate();
           final isStarred = data['isStarred'] ?? false;
-          final isDone = data['isDone'] ?? false;
 
-          return Card(
-            margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
-            elevation: 2,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            child: ListTile(
-              leading: Icon(
-                isDone
-                    ? Icons.check_circle
-                    : Icons.radio_button_unchecked,
-                color: isDone ? Colors.green : Colors.purple,
-              ),
-              title: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: TextStyle(
-                        decoration: isDone
-                            ? TextDecoration.lineThrough
-                            : TextDecoration.none,
-                        color: Colors.black87,
-                        fontWeight: FontWeight.w500,
+          return Container(
+            margin: const EdgeInsets.symmetric(vertical: 5),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12.withOpacity(0.05),
+                  blurRadius: 3,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Text(
+                      category,
+                      style: const TextStyle(
+                        color: Colors.grey,
+                        fontSize: 13,
                       ),
                     ),
-                  ),
-                  if (isStarred)
-                    const Icon(Icons.star, color: Colors.amber, size: 20),
-                ],
-              ),
-              subtitle: Text(
-                "$category ${due != null ? '• ${DateFormat('HH:mm').format(due)}' : ''}",
-                style: const TextStyle(color: Colors.grey, fontSize: 13),
-              ),
+                    if (due != null)
+                      Text(
+                        " • ${DateFormat('HH:mm').format(due)}",
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 13,
+                        ),
+                      ),
+                    if (isStarred)
+                      const Text(
+                        "  ★",
+                        style: TextStyle(color: Colors.amber, fontSize: 14),
+                      ),
+                  ],
+                ),
+              ],
             ),
           );
-        }).toList(),
-        const SizedBox(height: 8),
+        }),
       ],
     );
   }

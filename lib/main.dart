@@ -6,13 +6,14 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 import 'screens/splash_screen.dart';
 import 'screens/signin_screen.dart';
 import 'screens/signup_screen.dart';
 import 'pages/home_page.dart';
 
-// 🔔Plugin local notifications
+//Plugin local notifications
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
@@ -28,12 +29,12 @@ void _showNotification(RemoteMessage message) async {
   if (notification == null) return;
 
   const androidDetails = AndroidNotificationDetails(
-    'orb_task_channel', // id của kênh
-    'Thông báo OrbTask', // tên hiển thị trong cài đặt Android
+    'orb_task_channel',
+    'Thông báo OrbTask',
     channelDescription: 'Hiển thị các nhắc nhở và thông báo công việc',
     importance: Importance.max,
     priority: Priority.high,
-    icon: '@mipmap/ic_launcher', // ✅ icon an toàn, luôn tồn tại
+    icon: '@mipmap/ic_launcher',
   );
 
   const details = NotificationDetails(android: androidDetails);
@@ -48,6 +49,9 @@ void _showNotification(RemoteMessage message) async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  //Khởi tạo dữ liệu định dạng ngày tháng cho tiếng Việt
+  await initializeDateFormatting('vi_VN', null);
 
   //Firebase init
   if (kIsWeb) {
@@ -70,10 +74,10 @@ Future<void> main() async {
   const initSettings = InitializationSettings(android: androidInit);
   await flutterLocalNotificationsPlugin.initialize(initSettings);
 
-  //Background message handler
+  //Firebase background message handler
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  //Token để gửi thử từ Firebase Console
+  //In token để test
   final fcmToken = await FirebaseMessaging.instance.getToken();
   print('🔔 FCM Token: $fcmToken');
 
@@ -97,7 +101,7 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
 
-    //Khi app đang mở, nhận message foreground
+    // Khi app đang mở (foreground), nhận message
     FirebaseMessaging.onMessage.listen(_showNotification);
   }
 

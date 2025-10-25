@@ -5,12 +5,9 @@ import 'package:provider/provider.dart';
 import 'package:todolistapp/theme_provider.dart';
 import 'package:todolistapp/userpage/user_setting.dart';
 
-// Widgets / painters
+// Widgets
 import 'widgets/stat_card.dart';
-import 'widgets/user_header.dart';
 import 'widgets/task_ring_section.dart';
-import 'widgets/weekly_summary_section.dart';
-//import 'package:todolistapp/userpage/widgets/weekly_summary_section.dart';
 import 'widgets/weekly_summary_section.dart';
 
 class UserPage extends StatefulWidget {
@@ -41,8 +38,6 @@ class _UserPageState extends State<UserPage> with SingleTickerProviderStateMixin
 
   int completedCount = 0;
   int incompleteCount = 0;
-
-  //Map lưu từng loại task và số lượng
   Map<String, int> categoryCounts = {};
 
   @override
@@ -50,15 +45,15 @@ class _UserPageState extends State<UserPage> with SingleTickerProviderStateMixin
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 2),
+      duration: const Duration(milliseconds: 1200),
     );
+
     _progress = Tween<double>(begin: 0, end: 0).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
     );
 
     _fetchTaskStats();
 
-    //Lắng nghe Firestore realtime
     FirebaseFirestore.instance
         .collection('users')
         .doc(widget.userId)
@@ -72,16 +67,30 @@ class _UserPageState extends State<UserPage> with SingleTickerProviderStateMixin
     final snapshot = await user.doc(widget.userId).collection('tasks').get();
 
     final allTasks = snapshot.docs;
+    if (allTasks.isEmpty) {
+      if (!mounted) return;
+      setState(() {
+        completedCount = 0;
+        incompleteCount = 0;
+        categoryCounts = {};
+        _progress = Tween<double>(begin: 0, end: 0)
+            .animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+      });
+      return;
+    }
 
-    //Lọc theo trạng thái được chọn
-    final filteredTasks = selectedTaskType == "Nhiệm vụ đã hoàn thành"
-        ? allTasks.where((t) => (t['isDone'] ?? false) == true)
-        : allTasks.where((t) => (t['isDone'] ?? false) == false);
+    // Tách nhiệm vụ
+    final doneTasks = allTasks.where((t) => (t['isDone'] ?? false) == true).toList();
+    final undoneTasks = allTasks.where((t) => (t['isDone'] ?? false) == false).toList();
+    final done = doneTasks.length;
+    final undone = undoneTasks.length;
+    final total = done + undone;
 
-    final done = allTasks.where((t) => (t['isDone'] ?? false) == true).length;
-    final undone = allTasks.length - done;
+    // Lọc nhiệm vụ theo trạng thái đang xem
+    final filteredTasks =
+        selectedTaskType == "Nhiệm vụ đã hoàn thành" ? doneTasks : undoneTasks;
 
-    //Đếm số lượng mỗi phân loại (category)
+    // Đếm theo phân loại
     Map<String, int> counts = {};
     for (var t in filteredTasks) {
       final category = (t['category'] ?? 'Khác') as String;
@@ -89,51 +98,48 @@ class _UserPageState extends State<UserPage> with SingleTickerProviderStateMixin
     }
 
     if (!mounted) return;
+
+    final ratio = total == 0 ? 0.0 : done / total;
+
+    // Cập nhật state
     setState(() {
       completedCount = done;
       incompleteCount = undone;
       categoryCounts = counts;
 
-      final total = done + undone;
-      final ratio = total == 0 ? 0.0 : done / total;
-
-      _progress = Tween<double>(begin: 0, end: ratio).animate(
+      _progress = Tween<double>(
+        begin: _progress.value,
+        end: ratio,
+      ).animate(
         CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
       );
-
-      if (!_controller.isAnimating) _controller.forward(from: 0);
+      _controller.forward(from: 0);
     });
   }
 
-  //Thống kê số nhiệm vụ hoàn thành trong tuần hiện tại (T2 → CN)
-Future<List<int>> _fetchWeeklySummary() async {
-  final start = startOfWeek;
-  final end = endOfWeek;
+  Future<List<int>> _fetchWeeklySummary() async {
+    final start = startOfWeek;
+    final end = endOfWeek;
 
-  final query = await FirebaseFirestore.instance
-      .collection('users')
-      .doc(widget.userId)
-      .collection('tasks')
-      .where('isDone', isEqualTo: true)
-      .get();
+    final query = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(widget.userId)
+        .collection('tasks')
+        .where('isDone', isEqualTo: true)
+        .get();
 
-  //Danh sách 7 phần tử: thứ 2 → CN
-  List<int> weeklyCounts = List.filled(7, 0);
-
-  for (var doc in query.docs) {
-    final data = doc.data();
-    if (data['due'] != null) {
-      final due = (data['due'] as Timestamp).toDate();
-      if (due.isAfter(start) && due.isBefore(end)) {
-        final weekday = due.weekday; // 1=Mon...7=Sun
-        weeklyCounts[weekday - 1] += 1;
+    List<int> weeklyCounts = List.filled(7, 0);
+    for (var doc in query.docs) {
+      final data = doc.data();
+      if (data['due'] != null) {
+        final due = (data['due'] as Timestamp).toDate();
+        if (due.isAfter(start) && due.isBefore(end)) {
+          weeklyCounts[due.weekday - 1] += 1;
+        }
       }
     }
+    return weeklyCounts;
   }
-
-  return weeklyCounts;
-}
-
 
   @override
   void dispose() {
@@ -166,8 +172,7 @@ Future<List<int>> _fetchWeeklySummary() async {
       builder: (context) {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          contentPadding:
-              const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+          contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -186,14 +191,13 @@ Future<List<int>> _fetchWeeklySummary() async {
         type,
         style: TextStyle(
           color: selectedTaskType == type ? Colors.deepPurple : Colors.black,
-          fontWeight:
-              selectedTaskType == type ? FontWeight.bold : FontWeight.normal,
+          fontWeight: selectedTaskType == type ? FontWeight.bold : FontWeight.normal,
         ),
       ),
       onTap: () {
         setState(() => selectedTaskType = type);
         Navigator.pop(context);
-        _fetchTaskStats(); // cập nhật lại dữ liệu ngay khi đổi loại
+        _fetchTaskStats();
       },
     );
   }
@@ -204,11 +208,10 @@ Future<List<int>> _fetchWeeklySummary() async {
     final Color primaryColor = theme.themeColor;
     final bool darkMode = theme.darkMode;
 
-    final backgroundColor = darkMode ? Colors.black : const Color(0xFFF4F0F6);
+    final backgroundColor = darkMode ? const Color(0xFF0E0E0F) : const Color(0xFFF4F0F6);
     final textColor = darkMode ? Colors.white : Colors.black87;
     final isCurrentWeek = endOfWeek.isAfter(DateTime.now());
 
-    //Danh sách màu cố định cho các category
     final categoryColors = [
       Colors.deepPurple,
       Colors.teal,
@@ -219,7 +222,7 @@ Future<List<int>> _fetchWeeklySummary() async {
       Colors.green,
     ];
 
-    //Ghép màu với category
+    // Ánh xạ màu cho category
     final List<Map<String, dynamic>> coloredCategories = [];
     int i = 0;
     categoryCounts.forEach((key, value) {
@@ -242,18 +245,62 @@ Future<List<int>> _fetchWeeklySummary() async {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                UserHeader(
-                  textColor: textColor,
-                  onSettingPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const UserSetting()),
-                    );
-                  },
-                  username: widget.username,
-                  email: widget.email,
+                // ==== Header người dùng ====
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 32,
+                      backgroundColor: Colors.white,
+                      child: ClipOval(
+                        child: Image.asset(
+                          'assets/images/user.png',
+                          width: 64,
+                          height: 64,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.username,
+                            style: TextStyle(
+                              color: textColor,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            widget.email,
+                            style: TextStyle(
+                              color: textColor.withOpacity(0.7),
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Cài đặt',
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const UserSetting()),
+                        );
+                      },
+                      icon: const Icon(Icons.settings_rounded),
+                      color: primaryColor,
+                    ),
+                  ],
                 ),
+
                 const SizedBox(height: 24),
+
+                // ==== Thống kê tổng ====
                 Row(
                   children: [
                     Expanded(
@@ -275,20 +322,27 @@ Future<List<int>> _fetchWeeklySummary() async {
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 24),
 
-                // 🔹 Truyền dữ liệu phân loại sang TaskRingSection
-                TaskRingSection(
-                  selectedTaskType: selectedTaskType,
-                  onShowDialog: showTaskTypeDialog,
-                  progress: _progress,
-                  primaryColor: primaryColor,
-                  textColor: textColor,
-                  categories: coloredCategories,
+                // ==== Biểu đồ tròn ====
+                AnimatedBuilder(
+                  animation: _progress,
+                  builder: (context, _) {
+                    return TaskRingSection(
+                      selectedTaskType: selectedTaskType,
+                      onShowDialog: showTaskTypeDialog,
+                      progress: _progress,
+                      primaryColor: primaryColor,
+                      textColor: textColor,
+                      categories: coloredCategories,
+                    );
+                  },
                 ),
 
                 const SizedBox(height: 24),
-                
+
+                // ==== Tổng kết tuần ====
                 FutureBuilder<List<int>>(
                   future: _fetchWeeklySummary(),
                   builder: (context, snapshot) {
@@ -313,7 +367,6 @@ Future<List<int>> _fetchWeeklySummary() async {
                     );
                   },
                 ),
-
               ],
             ),
           ),

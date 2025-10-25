@@ -3,13 +3,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class OrbDrawer extends StatefulWidget {
   final Function(String) onSelectCategory;
-  final VoidCallback onOpenTheme;
   final String userId;
 
   const OrbDrawer({
     Key? key,
     required this.onSelectCategory,
-    required this.onOpenTheme,
     required this.userId,
   }) : super(key: key);
 
@@ -24,9 +22,10 @@ class _OrbDrawerState extends State<OrbDrawer> {
     "Cá nhân",
     "Yêu thích",
     "Sinh nhật",
+    "Khác",
   ];
 
-  Map<String, int> taskCounts = {}; //Lưu số lượng task từng loại
+  Map<String, int> taskCounts = {};
 
   @override
   void initState() {
@@ -47,12 +46,15 @@ class _OrbDrawerState extends State<OrbDrawer> {
         "Cá nhân": 0,
         "Yêu thích": 0,
         "Sinh nhật": 0,
+        "Khác": 0,
       };
 
       for (var doc in snapshot.docs) {
-        final cat = doc['category'] ?? '';
+        final cat = doc['category'] ?? 'Khác';
         if (counts.containsKey(cat)) {
           counts[cat] = (counts[cat] ?? 0) + 1;
+        } else {
+          counts["Khác"] = (counts["Khác"] ?? 0) + 1;
         }
       }
 
@@ -70,31 +72,52 @@ class _OrbDrawerState extends State<OrbDrawer> {
         padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
         child: ListView(
           children: [
-            const Text(
-              "OrbTask",
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.purple,
+            //Header
+            Center(
+              child: Column(
+                children: const [
+                  Text(
+                    "OrbTask",
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.purple,
+                    ),
+                  ),
+                  SizedBox(height: 6),
+                  Text(
+                    "🎉 We can do it!",
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Colors.purple,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 12),
-            const Text(
-              "🎉 We can do it!",
-              style: TextStyle(fontSize: 14, color: Colors.purple),
-            ),
+
             const SizedBox(height: 24),
 
-            // 🔹 Các nút đặc biệt
-            _drawerButton(Icons.star_border, "Star task", Colors.purple),
-            _drawerButton(Icons.access_time, "Thói quen", Colors.purple),
+            //Nút đặc biệt: Star task
+            _drawerButton(
+              Icons.star_border,
+              "Star task",
+              Colors.purple,
+              onTap: () {
+                Navigator.pop(context);
+                widget.onSelectCategory("Starred"); // ⭐ show task gắn sao
+              },
+            ),
 
             const SizedBox(height: 20),
+
             const Text(
               "Thể loại",
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: Colors.purple,
+                fontSize: 15,
               ),
             ),
             const SizedBox(height: 8),
@@ -109,9 +132,14 @@ class _OrbDrawerState extends State<OrbDrawer> {
             const Divider(),
             const SizedBox(height: 8),
 
-            _drawerButton(Icons.palette, "Tùy chỉnh giao diện", Colors.purple,
-                onTap: widget.onOpenTheme),
-            _drawerButton(Icons.help_outline, "Câu hỏi thường gặp", Colors.purple),
+            // _drawerButton(
+            //   Icons.help_outline,
+            //   "Câu hỏi thường gặp",
+            //   Colors.purple,
+            //   onTap: () {
+            //     // TODO: Mở trang FAQ (sẽ thêm sau)
+            //   },
+            // ),
           ],
         ),
       ),
@@ -161,12 +189,18 @@ class _OrbDrawerState extends State<OrbDrawer> {
       case "Sinh nhật":
         icon = Icons.cake_outlined;
         break;
+      case "Khác":
+        icon = Icons.category_outlined;
+        break;
       default:
-        icon = Icons.folder_open;
+        icon = Icons.list_alt;
     }
 
     return InkWell(
-      onTap: () => widget.onSelectCategory(name),
+      onTap: () {
+        Navigator.pop(context);
+        widget.onSelectCategory(name);
+      },
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
@@ -186,7 +220,7 @@ class _OrbDrawerState extends State<OrbDrawer> {
               ),
             ),
             Text(
-              count.toString(), // 👈 Bỏ ngoặc
+              count.toString(),
               style: const TextStyle(
                 color: Colors.grey,
                 fontWeight: FontWeight.w600,

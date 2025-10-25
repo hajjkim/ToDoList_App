@@ -68,26 +68,26 @@ class _UserSettingState extends State<UserSetting> {
             const SizedBox(height: 24),
 
             // ---------- DỮ LIỆU ----------
-            Text(
-              "Dữ liệu",
-              style: TextStyle(
-                color: primaryColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 12),
+            // Text(
+            //   "Dữ liệu",
+            //   style: TextStyle(
+            //     color: primaryColor,
+            //     fontWeight: FontWeight.bold,
+            //     fontSize: 14,
+            //   ),
+            // ),
+            // const SizedBox(height: 12),
 
             //Xóa tất cả công việc
-            ListTile(
-              leading: const Icon(Icons.delete_forever, color: Colors.red),
-              title: const Text(
-                "Xóa tất cả công việc",
-                style: TextStyle(color: Colors.red),
-              ),
-              subtitle: const Text("Xóa toàn bộ danh sách công việc"),
-              onTap: _confirmDeleteAllTasks,
-            ),
+            // ListTile(
+            //   leading: const Icon(Icons.delete_forever, color: Colors.red),
+            //   title: const Text(
+            //     "Xóa tất cả công việc",
+            //     style: TextStyle(color: Colors.red),
+            //   ),
+            //   subtitle: const Text("Xóa toàn bộ danh sách công việc"),
+            //   onTap: _confirmDeleteAllTasks,
+            // ),
 
             // ---------- ĐĂNG XUẤT ----------
             const SizedBox(height: 12),

@@ -17,21 +17,20 @@ class RingChartPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = min(size.width, size.height) / 2 - 8;
 
-    //bg vòng tròn
+    //Nền vòng tròn (background)
     final basePaint = Paint()
       ..color = color.withOpacity(0.15)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 12
+      ..strokeWidth = 10
       ..strokeCap = StrokeCap.round;
     canvas.drawCircle(center, radius, basePaint);
 
-    //Vẽ các cung nhiều màu nếu có dữ liệu
+    // Nếu có dữ liệu thể loại thì chia cung theo màu
     if (categories != null && categories!.isNotEmpty) {
       final total = categories!.fold<int>(
         0,
         (sum, item) => sum + ((item['count'] ?? 0) as num).toInt(),
       );
-
       if (total == 0) return;
 
       double startAngle = -pi / 2;
@@ -41,20 +40,20 @@ class RingChartPainter extends CustomPainter {
         final sweepAngle = (count / total) * 2 * pi * progress;
         final catColor = (cat['color'] as Color?) ?? color;
 
-        // Vẽ cung màu
+        // Gradient nhẹ cho mỗi cung
         final paint = Paint()
           ..shader = SweepGradient(
             startAngle: startAngle,
             endAngle: startAngle + sweepAngle,
             colors: [
               catColor.withOpacity(0.9),
-              catColor.withOpacity(0.5),
+              catColor.withOpacity(0.6),
             ],
           ).createShader(
             Rect.fromCircle(center: center, radius: radius),
           )
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 12
+          ..strokeWidth = 10
           ..strokeCap = StrokeCap.round;
 
         canvas.drawArc(
@@ -65,44 +64,14 @@ class RingChartPainter extends CustomPainter {
           paint,
         );
 
-        //Hiển thị số hoặc phần trăm trên cung
-        if (progress >= 0.2 && sweepAngle > 0.3) {
-          final midAngle = startAngle + sweepAngle / 2;
-          final percent = (count / total * 100).toStringAsFixed(0);
-          final offset = Offset(
-            center.dx + (radius - 20) * cos(midAngle),
-            center.dy + (radius - 20) * sin(midAngle),
-          );
-
-          final textPainter = TextPainter(
-            text: TextSpan(
-              text: "$percent%",
-              style: TextStyle(
-                color: catColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ),
-            ),
-            textDirection: TextDirection.ltr,
-          );
-          textPainter.layout();
-          textPainter.paint(
-            canvas,
-            Offset(
-              offset.dx - textPainter.width / 2,
-              offset.dy - textPainter.height / 2,
-            ),
-          );
-        }
-
         startAngle += sweepAngle;
       }
     } else {
-      //Trường hợp không có phân loại
+      //Nếu không có phân loại
       final paint = Paint()
         ..color = color
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 12
+        ..strokeWidth = 10
         ..strokeCap = StrokeCap.round;
 
       canvas.drawArc(
@@ -112,6 +81,16 @@ class RingChartPainter extends CustomPainter {
         false,
         paint,
       );
+    }
+
+    //Nếu hoàn thành 100% → thêm hiệu ứng phát sáng nhẹ
+    if (progress >= 0.999) {
+      final glowPaint = Paint()
+        ..color = color.withOpacity(0.3)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 18
+        ..maskFilter = const MaskFilter.blur(BlurStyle.outer, 10);
+      canvas.drawCircle(center, radius, glowPaint);
     }
   }
 
